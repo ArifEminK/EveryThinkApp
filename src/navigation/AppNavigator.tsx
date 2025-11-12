@@ -1,28 +1,45 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { HomeScreen, TasksScreen, JournalScreen, CalendarScreen } from '../screens';
+import {
+  HomeScreen,
+  TasksScreen,
+  JournalScreen,
+  CalendarScreen,
+  AddTaskScreen,
+} from '../screens';
 import { BottomNavbar, TabType } from '../components/common';
+
+type ScreenType = TabType | 'addTask';
 
 export function AppNavigator() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [currentScreen, setCurrentScreen] = useState<ScreenType>('home');
 
   const handleTabPress = (tab: TabType) => {
     if (tab === 'add') {
-      // Add button will open modal later
-      console.log('Add button pressed');
+      // Add button handled by handleAddPress
       return;
     }
     setActiveTab(tab);
+    setCurrentScreen(tab);
   };
 
   const handleAddPress = () => {
-    // Add button will open modal later
-    console.log('Add button pressed');
+    setCurrentScreen('addTask');
+  };
+
+  const handleGoBack = () => {
+    // Return to the last active tab
+    setCurrentScreen(activeTab);
   };
 
   const renderScreen = () => {
-    switch (activeTab) {
+    if (currentScreen === 'addTask') {
+      return <AddTaskScreen onGoBack={handleGoBack} />;
+    }
+
+    switch (currentScreen) {
       case 'home':
         return <HomeScreen />;
       case 'tasks':
@@ -44,6 +61,7 @@ export function AppNavigator() {
           activeTab={activeTab}
           onTabPress={handleTabPress}
           onAddPress={handleAddPress}
+          isAddButtonActive={currentScreen === 'addTask'}
         />
       </View>
     </SafeAreaProvider>

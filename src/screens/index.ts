@@ -7,4 +7,5 @@ export { HomeScreen } from './HomeScreen';
 export { TasksScreen } from './TasksScreen';
 export { JournalScreen } from './JournalScreen';
 export { CalendarScreen } from './CalendarScreen';
+export { AddTaskScreen } from './AddTaskScreen';
 

@@ -13,7 +13,7 @@ export function TasksScreen() {
         userName="User"
       />
       <View style={styles.container}>
-        <Text style={styles.title}>Gördsadevler</Text>
+        <Text style={styles.title}>Görevler</Text>
       </View>
     </SafeAreaWrapper>
   );

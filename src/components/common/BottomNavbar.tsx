@@ -18,6 +18,7 @@ interface BottomNavbarProps {
   activeTab: TabType;
   onTabPress: (tab: TabType) => void;
   onAddPress?: () => void;
+  isAddButtonActive?: boolean;
 }
 
 const tabs: TabItem[] = [
@@ -67,6 +68,7 @@ export function BottomNavbar({
   activeTab,
   onTabPress,
   onAddPress,
+  isAddButtonActive = false,
 }: BottomNavbarProps) {
   const insets = useSafeAreaInsets();
   const [containerWidth, setContainerWidth] = useState(0);
@@ -96,7 +98,8 @@ export function BottomNavbar({
       {/* Left Tabs */}
       <View style={styles.leftTabs}>
         {tabs.slice(0, 2).map((tab, index) => {
-          const isActive = activeTab === tab.id;
+          // Tab is active only if it's the active tab AND add button is not active
+          const isActive = !isAddButtonActive && activeTab === tab.id;
           const iconName = isActive && tab.activeIcon ? tab.activeIcon : tab.icon;
 
           return (
@@ -143,11 +146,16 @@ export function BottomNavbar({
           onPress={handleAddPress}
           activeOpacity={0.8}
         >
-          <View style={styles.addButtonInner}>
+          <View
+            style={[
+              styles.addButtonInner,
+              isAddButtonActive && styles.addButtonInnerActive,
+            ]}
+          >
             <Ionicons
               name="add"
               size={ADD_ICON_SIZE}
-              color={theme.colors.text.primary}
+              color={theme.colors.text.light}
             />
           </View>
         </TouchableOpacity>
@@ -156,7 +164,8 @@ export function BottomNavbar({
       {/* Right Tabs */}
       <View style={styles.rightTabs}>
         {tabs.slice(2, 4).map((tab, index) => {
-          const isActive = activeTab === tab.id;
+          // Tab is active only if it's the active tab AND add button is not active
+          const isActive = !isAddButtonActive && activeTab === tab.id;
           const iconName = isActive && tab.activeIcon ? tab.activeIcon : tab.icon;
 
           return (
@@ -258,9 +267,23 @@ const styles = StyleSheet.create({
     width: ADD_BUTTON_SIZE,
     height: ADD_BUTTON_SIZE,
     borderRadius: ADD_BUTTON_SIZE / 2,
-    backgroundColor: theme.colors.background.tertiary,
+    backgroundColor: '#89061C',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#89061C',
+    shadowOffset: {
+      width: 0,
+      height: verticalScale(4),
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: moderateScale(8),
+    elevation: 8,
+  },
+  addButtonInnerActive: {
+    shadowOpacity: 0.5,
+    shadowRadius: moderateScale(12),
+    elevation: 12,
+    transform: [{ scale: 1.05 }],
   },
 });
 
