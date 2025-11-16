@@ -10,8 +10,7 @@ export interface Countdown {
   userId: string; // uuid - Foreign Key to users
   title: string;
   description: string;
-  startDate: Date;
-  endDate: Date;
+  targetDate: Date; // countdown mode: bitiş tarihi, countup mode: başlangıç tarihi
   mode: CountdownMode;
   createdAt: Date;
 }
@@ -20,16 +19,14 @@ export interface CreateCountdownInput {
   userId: string;
   title: string;
   description: string;
-  startDate: Date;
-  endDate: Date;
+  targetDate: Date; // countdown mode: bitiş tarihi, countup mode: başlangıç tarihi
   mode: CountdownMode;
 }
 
 export interface UpdateCountdownInput {
   title?: string;
   description?: string;
-  startDate?: Date;
-  endDate?: Date;
+  targetDate?: Date;
   mode?: CountdownMode;
 }
 

@@ -3,7 +3,7 @@
  * General type for all addable items (task, countdown, diary, reminder)
  */
 
-export type ItemType = 'task' | 'countdown' | 'diary' | 'reminder';
+export type ItemType = 'task' | 'alarm' | 'countdown' | 'diary' | 'reminder';
 
 export interface ItemTypeConfig {
   id: ItemType;
@@ -18,6 +18,12 @@ export const ITEM_TYPES: ItemTypeConfig[] = [
     label: 'Görev',
     icon: 'checkmark-circle',
     color: '#748FFC',
+  },
+  {
+    id: 'alarm',
+    label: 'Alarm',
+    icon: 'alarm',
+    color: '#AB47BC',
   },
   {
     id: 'countdown',
@@ -42,6 +48,7 @@ export const ITEM_TYPES: ItemTypeConfig[] = [
 // Union type for all create inputs
 export type CreateItemInput =
   | { type: 'task'; data: import('./task').CreateTaskInput }
+  | { type: 'alarm'; data: import('./alarm').CreateAlarmInput }
   | { type: 'countdown'; data: import('./countdown').CreateCountdownInput }
   | { type: 'diary'; data: import('./diary').CreateDiaryInput }
   | { type: 'reminder'; data: import('./notification').CreateNotificationInput };

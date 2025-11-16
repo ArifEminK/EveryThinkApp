@@ -18,6 +18,7 @@ export * from './user';
 export * from './diary';
 export * from './countdown';
 export * from './task';
+export * from './alarm';
 export * from './notification';
 export * from './settings';
 export * from './enums';

@@ -152,11 +152,14 @@ export function BottomNavbar({
               isAddButtonActive && styles.addButtonInnerActive,
             ]}
           >
-            <Ionicons
-              name="add"
-              size={ADD_ICON_SIZE}
-              color={theme.colors.text.light}
-            />
+            {/* Çöküntü efekti için iç katman */}
+            <View style={styles.addButtonDepression}>
+              <Ionicons
+                name="add"
+                size={ADD_ICON_SIZE}
+                color={theme.colors.text.light}
+              />
+            </View>
           </View>
         </TouchableOpacity>
       )}
@@ -278,6 +281,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: moderateScale(8),
     elevation: 8,
+    // Çöküntü efekti için border
+    borderWidth: moderateScale(2),
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  addButtonDepression: {
+    width: ADD_BUTTON_SIZE - moderateScale(8),
+    height: ADD_BUTTON_SIZE - moderateScale(8),
+    borderRadius: (ADD_BUTTON_SIZE - moderateScale(8)) / 2,
+    backgroundColor: '#89061C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // İçe doğru shadow efekti (çöküntü)
+    shadowColor: 'rgba(0, 0, 0, 0.5)',
+    shadowOffset: {
+      width: 0,
+      height: verticalScale(2),
+    },
+    shadowOpacity: 0.8,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
+    // Üst tarafa daha koyu, alttan hafif aydınlatma
+    borderTopWidth: moderateScale(1),
+    borderTopColor: 'rgba(0, 0, 0, 0.3)',
+    borderBottomWidth: moderateScale(1),
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   addButtonInnerActive: {
     shadowOpacity: 0.5,
