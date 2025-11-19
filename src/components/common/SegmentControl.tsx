@@ -1,5 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  LayoutChangeEvent,
+  Easing,
+} from 'react-native';
 import { scale, moderateScale, verticalScale } from 'react-native-size-matters';
 import { theme } from '../../theme';
 import { ITEM_TYPES } from '../../types/item';
@@ -29,6 +37,16 @@ const hexToRgba = (hex: string, opacity: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
+type SegmentLayoutMap = Partial<
+  Record<
+    SegmentType,
+    {
+      x: number;
+      width: number;
+    }
+  >
+>;
+
 /**
  * SegmentControl - Horizontal segment control for filtering items
  * Displays segments with active/inactive states
@@ -38,8 +56,69 @@ export function SegmentControl({
   selectedSegment,
   onSegmentChange,
 }: SegmentControlProps) {
+  const [segmentLayouts, setSegmentLayouts] = useState<SegmentLayoutMap>({});
+  const indicatorTranslate = useRef(new Animated.Value(0)).current;
+  const indicatorWidth = useRef(new Animated.Value(0)).current;
+
+  const activeSegmentColor = useMemo(
+    () => getSegmentColor(selectedSegment),
+    [selectedSegment]
+  );
+
+  useEffect(() => {
+    const layout = segmentLayouts[selectedSegment];
+
+    if (!layout) {
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(indicatorTranslate, {
+        toValue: layout.x,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(indicatorWidth, {
+        toValue: layout.width,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [selectedSegment, segmentLayouts, indicatorTranslate, indicatorWidth]);
+
+  const handleSegmentLayout =
+    (segmentValue: SegmentType) =>
+    (event: LayoutChangeEvent): void => {
+      const { x, width } = event.nativeEvent.layout;
+      setSegmentLayouts((prev) => ({
+        ...prev,
+        [segmentValue]: { x, width },
+      }));
+    };
+
   return (
     <View style={styles.container}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.activeIndicator,
+          {
+            transform: [{ translateX: indicatorTranslate }],
+            width: indicatorWidth,
+            backgroundColor:
+              selectedSegment === 'all'
+                ? theme.colors.surface.main
+                : hexToRgba(activeSegmentColor, 0.2),
+            shadowColor:
+              selectedSegment === 'all'
+                ? theme.colors.text.primary
+                : activeSegmentColor,
+          },
+        ]}
+      />
+
       {segments.map((segment, index) => {
         const isActive = selectedSegment === segment.value;
         const segmentColor = getSegmentColor(segment.value);
@@ -49,24 +128,11 @@ export function SegmentControl({
             key={segment.value}
             style={[
               styles.segment,
-              isActive && {
-                backgroundColor:
-                  segment.value === 'all'
-                    ? theme.colors.surface.main
-                    : hexToRgba(segmentColor, 0.2), // %20 opacity ile arka plan
-                shadowColor: segment.value === 'all' ? theme.colors.text.primary : segmentColor,
-                shadowOffset: {
-                  width: 0,
-                  height: verticalScale(1),
-                },
-                shadowOpacity: 0.1,
-                shadowRadius: moderateScale(2),
-                elevation: 2,
-              },
               index === 0 && styles.segmentFirst,
               index === segments.length - 1 && styles.segmentLast,
             ]}
             onPress={() => onSegmentChange(segment.value)}
+            onLayout={handleSegmentLayout(segment.value)}
             activeOpacity={0.7}
           >
             <Text
@@ -102,6 +168,21 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
     padding: moderateScale(3),
     gap: moderateScale(2),
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: moderateScale(3),
+    bottom: moderateScale(3),
+    borderRadius: moderateScale(7),
+    shadowOffset: {
+      width: 0,
+      height: verticalScale(1),
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: moderateScale(1.5),
+    elevation: 0,
   },
   segment: {
     flex: 1,

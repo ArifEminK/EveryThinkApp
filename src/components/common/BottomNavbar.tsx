@@ -24,13 +24,13 @@ interface BottomNavbarProps {
 const tabs: TabItem[] = [
   {
     id: 'home',
-    label: 'Ana Ekran',
+    label: 'Ana Sayfa',
     icon: 'home-outline',
     activeIcon: 'home',
   },
   {
     id: 'tasks',
-    label: 'Görevler',
+    label: 'Tüm Görevler',
     icon: 'checkmark-circle-outline',
     activeIcon: 'checkmark-circle',
   },
@@ -48,21 +48,20 @@ const tabs: TabItem[] = [
   },
 ];
 
-// Responsive size constants using react-native-size-matters
-const ADD_BUTTON_SIZE = moderateScale(64);
-const ADD_ICON_SIZE = moderateScale(40);
-const TAB_ICON_SIZE = moderateScale(24);
-const TAB_MIN_WIDTH = moderateScale(50);
-const TAB_SPACING = moderateScale(24);
-const CONTAINER_MIN_HEIGHT = verticalScale(56);
+// Responsive size constants
+const FAB_SIZE = moderateScale(65); // 60-70 arası
+const FAB_ICON_SIZE = moderateScale(32);
+const TAB_ICON_SIZE = moderateScale(28);
+const TAB_LABEL_FONT_SIZE = moderateScale(10);
+const CONTAINER_BORDER_RADIUS = moderateScale(24);
 const CONTAINER_PADDING_HORIZONTAL = scale(16);
-const CONTAINER_PADDING_TOP = verticalScale(4);
-const ADD_BUTTON_TOP_OFFSET = -ADD_BUTTON_SIZE / 2;
+const CONTAINER_PADDING_VERTICAL = verticalScale(12);
+const TAB_SPACING = scale(24);
 
 /**
- * BottomNavbar - Bottom navigation bar with tabs and central add button
- * Features rounded corners and clean minimal design
- * Fully responsive using react-native-size-matters
+ * BottomNavbar - Bottom navigation bar with FAB button
+ * Layout: LeftContainer (2 icons) | CenterSpacer (FAB) | RightContainer (2 icons)
+ * Features: White background, rounded corners, shadow effect, fully responsive
  */
 export function BottomNavbar({
   activeTab,
@@ -71,7 +70,10 @@ export function BottomNavbar({
   isAddButtonActive = false,
 }: BottomNavbarProps) {
   const insets = useSafeAreaInsets();
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [centerSpacerLayout, setCenterSpacerLayout] = useState<{
+    x: number;
+    width: number;
+  } | null>(null);
 
   const handleAddPress = () => {
     if (onAddPress) {
@@ -79,13 +81,18 @@ export function BottomNavbar({
     }
   };
 
-  const handleContainerLayout = (event: LayoutChangeEvent) => {
-    const { width } = event.nativeEvent.layout;
-    setContainerWidth(width);
+  const handleCenterSpacerLayout = (event: LayoutChangeEvent) => {
+    const { x, width } = event.nativeEvent.layout;
+    setCenterSpacerLayout({ x, width });
   };
 
-  // Calculate button position - center of container minus half button width
-  const addButtonLeft = containerWidth > 0 ? containerWidth / 2 - ADD_BUTTON_SIZE / 2 : 0;
+  // Calculate FAB position - center of CenterSpacer
+  const fabLeft = centerSpacerLayout
+    ? centerSpacerLayout.x + centerSpacerLayout.width / 2 - FAB_SIZE / 2
+    : 0;
+
+  const leftTabs = tabs.slice(0, 2);
+  const rightTabs = tabs.slice(2, 4);
 
   return (
     <View
@@ -93,12 +100,10 @@ export function BottomNavbar({
         styles.container,
         { paddingBottom: Math.max(insets.bottom, verticalScale(8)) },
       ]}
-      onLayout={handleContainerLayout}
     >
-      {/* Left Tabs */}
-      <View style={styles.leftTabs}>
-        {tabs.slice(0, 2).map((tab, index) => {
-          // Tab is active only if it's the active tab AND add button is not active
+      {/* Left Container - 2 Icons */}
+      <View style={styles.leftContainer}>
+        {leftTabs.map((tab, index) => {
           const isActive = !isAddButtonActive && activeTab === tab.id;
           const iconName = isActive && tab.activeIcon ? tab.activeIcon : tab.icon;
 
@@ -134,40 +139,30 @@ export function BottomNavbar({
         })}
       </View>
 
-      {/* Central Add Button */}
-      {containerWidth > 0 && (
+      {/* Center Spacer - Empty space for FAB */}
+      <View
+        style={styles.centerSpacer}
+        onLayout={handleCenterSpacerLayout}
+
+      >
         <TouchableOpacity
           style={[
-            styles.addButton,
-            {
-              left: addButtonLeft,
-            },
+            styles.fabButton,
+            isAddButtonActive && styles.fabButtonActive,
           ]}
           onPress={handleAddPress}
           activeOpacity={0.8}
         >
-          <View
-            style={[
-              styles.addButtonInner,
-              isAddButtonActive && styles.addButtonInnerActive,
-            ]}
-          >
-            {/* Çöküntü efekti için iç katman */}
-            <View style={styles.addButtonDepression}>
-              <Ionicons
-                name="add"
-                size={ADD_ICON_SIZE}
-                color={theme.colors.text.light}
-              />
-            </View>
-          </View>
+          <Ionicons
+            name="add"
+            size={FAB_ICON_SIZE}
+            color={theme.colors.text.light}
+          />
         </TouchableOpacity>
-      )}
-
-      {/* Right Tabs */}
-      <View style={styles.rightTabs}>
-        {tabs.slice(2, 4).map((tab, index) => {
-          // Tab is active only if it's the active tab AND add button is not active
+      </View>
+      {/* Right Container - 2 Icons */}
+      <View style={styles.rightContainer}>
+        {rightTabs.map((tab, index) => {
           const isActive = !isAddButtonActive && activeTab === tab.id;
           const iconName = isActive && tab.activeIcon ? tab.activeIcon : tab.icon;
 
@@ -202,6 +197,27 @@ export function BottomNavbar({
           );
         })}
       </View>
+
+      {/* FAB Button - Absolute positioned in center */}
+      {/* {centerSpacerLayout && (
+        <TouchableOpacity
+          style={[
+            styles.fabButton,
+            {
+              left: fabLeft,
+            },
+            isAddButtonActive && styles.fabButtonActive,
+          ]}
+          onPress={handleAddPress}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="add"
+            size={FAB_ICON_SIZE}
+            color={theme.colors.text.light}
+          />
+        </TouchableOpacity>
+      )} */}
     </View>
   );
 }
@@ -210,15 +226,16 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    backgroundColor: theme.colors.surface.secondary,
+    backgroundColor: theme.colors.background.secondary,
+    borderTopLeftRadius: CONTAINER_BORDER_RADIUS,
+    borderTopRightRadius: CONTAINER_BORDER_RADIUS,
     paddingHorizontal: CONTAINER_PADDING_HORIZONTAL,
-    paddingTop: CONTAINER_PADDING_TOP,
-    minHeight: CONTAINER_MIN_HEIGHT,
-    borderTopLeftRadius: moderateScale(16),
-    borderTopRightRadius: moderateScale(16),
-    shadowColor: theme.colors.text.primary,
+    paddingTop: CONTAINER_PADDING_VERTICAL,
+    minHeight: verticalScale(64),
+    // Shadow effect
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: verticalScale(-2),
@@ -227,27 +244,35 @@ const styles = StyleSheet.create({
     shadowRadius: moderateScale(8),
     elevation: 8,
   },
-  leftTabs: {
+  leftContainer: {
     flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'flex-start',
+    flex: 2,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  rightTabs: {
+  centerSpacer: {
+    flex: 0.6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: FAB_SIZE,
+    // Empty spacer for FAB positioning
+  },
+  rightContainer: {
     flexDirection: 'row',
-    flex: 1,
+    flex: 2,
+    alignItems: 'center',
     justifyContent: 'flex-end',
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: TAB_MIN_WIDTH,
     paddingVertical: verticalScale(4),
-    paddingBottom: verticalScale(8),
+    minWidth: moderateScale(50),
   },
   tabLabel: {
-    fontSize: moderateScale(12),
+    fontSize: TAB_LABEL_FONT_SIZE,
     fontFamily: theme.typography.fontFamily.regular,
-    marginTop: verticalScale(2),
+    marginTop: verticalScale(4),
   },
   tabLabelActive: {
     color: theme.colors.text.primary,
@@ -257,22 +282,17 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
     fontWeight: theme.typography.fontWeight.regular,
   },
-  addButton: {
+  fabButton: {
     position: 'absolute',
-    top: ADD_BUTTON_TOP_OFFSET,
-    width: ADD_BUTTON_SIZE,
-    height: ADD_BUTTON_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  addButtonInner: {
-    width: ADD_BUTTON_SIZE,
-    height: ADD_BUTTON_SIZE,
-    borderRadius: ADD_BUTTON_SIZE / 2,
+    top: -FAB_SIZE, // Half above the bar
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
     backgroundColor: '#89061C',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
+    // Shadow effect
     shadowColor: '#89061C',
     shadowOffset: {
       width: 0,
@@ -281,33 +301,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: moderateScale(8),
     elevation: 8,
-    // Çöküntü efekti için border
-    borderWidth: moderateScale(2),
-    borderColor: 'rgba(0, 0, 0, 0.2)',
   },
-  addButtonDepression: {
-    width: ADD_BUTTON_SIZE - moderateScale(8),
-    height: ADD_BUTTON_SIZE - moderateScale(8),
-    borderRadius: (ADD_BUTTON_SIZE - moderateScale(8)) / 2,
-    backgroundColor: '#89061C',
-    justifyContent: 'center',
-    alignItems: 'center',
-    // İçe doğru shadow efekti (çöküntü)
-    shadowColor: 'rgba(0, 0, 0, 0.5)',
-    shadowOffset: {
-      width: 0,
-      height: verticalScale(2),
-    },
-    shadowOpacity: 0.8,
-    shadowRadius: moderateScale(4),
-    elevation: 4,
-    // Üst tarafa daha koyu, alttan hafif aydınlatma
-    borderTopWidth: moderateScale(1),
-    borderTopColor: 'rgba(0, 0, 0, 0.3)',
-    borderBottomWidth: moderateScale(1),
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  addButtonInnerActive: {
+  fabButtonActive: {
     shadowOpacity: 0.5,
     shadowRadius: moderateScale(12),
     elevation: 12,
@@ -316,4 +311,3 @@ const styles = StyleSheet.create({
 });
 
 export default BottomNavbar;
-

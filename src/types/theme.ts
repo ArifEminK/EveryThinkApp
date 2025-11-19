@@ -3,10 +3,10 @@
  * TypeScript types for theme system
  */
 
-import type { Theme, Color } from '../theme/theme';
+import type { Theme, colors } from '../theme/theme';
 
 // Re-export theme types
-export type { Theme, Color };
+export type { Theme, colors };
 
 // Extended theme types for styled components
 export interface ThemeProps {
@@ -14,7 +14,8 @@ export interface ThemeProps {
 }
 
 // Component props with theme access
-export interface WithTheme<T = {}> extends T {
-  theme?: Theme;
+export interface WithTheme<T extends object = object> {
+  theme: Theme;
+  children: React.ReactNode;
 }
 
