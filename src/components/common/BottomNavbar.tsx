@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, LayoutChangeEvent } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text, LayoutChangeEvent, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { scale, moderateScale, verticalScale } from 'react-native-size-matters';
@@ -75,10 +75,67 @@ export function BottomNavbar({
     width: number;
   } | null>(null);
 
+  // Animation refs (NO FAB animations!)
+  const slideUpAnim = useRef(new Animated.Value(100)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const tabScaleAnims = useRef(
+    tabs.map(() => new Animated.Value(1))
+  ).current;
+
+  // Entrance animation
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideUpAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Tab active state animations
+  useEffect(() => {
+    tabs.forEach((tab, index) => {
+      const isActive = !isAddButtonActive && activeTab === tab.id;
+      Animated.spring(tabScaleAnims[index], {
+        toValue: isActive ? 1.1 : 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [activeTab, isAddButtonActive]);
+
   const handleAddPress = () => {
     if (onAddPress) {
       onAddPress();
     }
+  };
+
+  const handleTabPress = (tab: TabType, index: number) => {
+    // Tab press bounce animation
+    Animated.sequence([
+      Animated.spring(tabScaleAnims[index], {
+        toValue: 0.85,
+        friction: 3,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(tabScaleAnims[index], {
+        toValue: !isAddButtonActive && activeTab === tab ? 1.1 : 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    onTabPress(tab);
   };
 
   const handleCenterSpacerLayout = (event: LayoutChangeEvent) => {
@@ -95,10 +152,14 @@ export function BottomNavbar({
   const rightTabs = tabs.slice(2, 4);
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.container,
-        { paddingBottom: Math.max(insets.bottom, verticalScale(8)) },
+        {
+          paddingBottom: Math.max(insets.bottom, verticalScale(8)),
+          transform: [{ translateY: slideUpAnim }],
+          opacity: opacityAnim,
+        },
       ]}
     >
       {/* Left Container - 2 Icons */}
@@ -114,18 +175,24 @@ export function BottomNavbar({
                 styles.tabItem,
                 index > 0 && { marginLeft: TAB_SPACING },
               ]}
-              onPress={() => onTabPress(tab.id)}
+              onPress={() => handleTabPress(tab.id, index)}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name={iconName as any}
-                size={TAB_ICON_SIZE}
-                color={
-                  isActive
-                    ? theme.colors.text.primary
-                    : theme.colors.text.secondary
-                }
-              />
+              <Animated.View
+                style={{
+                  transform: [{ scale: tabScaleAnims[index] }],
+                }}
+              >
+                <Ionicons
+                  name={iconName as any}
+                  size={TAB_ICON_SIZE}
+                  color={
+                    isActive
+                      ? theme.colors.text.primary
+                      : theme.colors.text.secondary
+                  }
+                />
+              </Animated.View>
               <Text
                 style={[
                   styles.tabLabel,
@@ -165,6 +232,7 @@ export function BottomNavbar({
         {rightTabs.map((tab, index) => {
           const isActive = !isAddButtonActive && activeTab === tab.id;
           const iconName = isActive && tab.activeIcon ? tab.activeIcon : tab.icon;
+          const tabIndex = index + 2; // Right tabs start at index 2
 
           return (
             <TouchableOpacity
@@ -173,18 +241,24 @@ export function BottomNavbar({
                 styles.tabItem,
                 index > 0 && { marginLeft: TAB_SPACING },
               ]}
-              onPress={() => onTabPress(tab.id)}
+              onPress={() => handleTabPress(tab.id, tabIndex)}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name={iconName as any}
-                size={TAB_ICON_SIZE}
-                color={
-                  isActive
-                    ? theme.colors.text.primary
-                    : theme.colors.text.secondary
-                }
-              />
+              <Animated.View
+                style={{
+                  transform: [{ scale: tabScaleAnims[tabIndex] }],
+                }}
+              >
+                <Ionicons
+                  name={iconName as any}
+                  size={TAB_ICON_SIZE}
+                  color={
+                    isActive
+                      ? theme.colors.text.primary
+                      : theme.colors.text.secondary
+                  }
+                />
+              </Animated.View>
               <Text
                 style={[
                   styles.tabLabel,
@@ -218,7 +292,7 @@ export function BottomNavbar({
           />
         </TouchableOpacity>
       )} */}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -248,7 +322,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flex: 2,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
   },
   centerSpacer: {
     flex: 0.6,

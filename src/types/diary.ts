@@ -3,37 +3,37 @@
  * TypeScript types for diary/journal entries
  */
 
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+
 export interface Diary {
-  id: string; // uuid
-  userId: string; // uuid - Foreign Key to users
-  date: Date;
-  title: string;
-  content: string;
-  mood: string;
-  createdAt: Date;
+    id: string;            // uuid
+    userId: string;        // uuid - Foreign Key to users
+    date: string;          // YYYY-MM-DD
+    title: string;
+    content: string;
+    mood?: string;
+    createdAt: string;     // ISO string
 }
 
-export interface CreateDiaryInput {
-  userId: string;
-  date: Date;
-  title: string;
-  content: string;
-  mood?: string;
-}
+// Create/Update input types
+export type CreateDiaryInput = Omit<Diary, 'id' | 'createdAt'>;
+export type UpdateDiaryInput = Partial<Omit<Diary, 'id' | 'userId' | 'createdAt'>>;
 
-export interface UpdateDiaryInput {
-  date?: Date;
-  title?: string;
-  content?: string;
-  mood?: string;
-}
-
-// Diary with user relation (optional)
-export interface DiaryWithUser extends Diary {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
+// Firestore Converter
+export const DiaryConverter = {
+    toFirestore(diary: Diary): FirebaseFirestoreTypes.DocumentData {
+        return diary;
+    },
+    fromFirestore(snapshot: FirebaseFirestoreTypes.QueryDocumentSnapshot): Diary {
+        const data = snapshot.data();
+        return {
+            id: snapshot.id,
+            userId: data.userId,
+            date: data.date,
+            title: data.title,
+            content: data.content,
+            mood: data.mood,
+            createdAt: data.createdAt,
+        };
+    },
+};

@@ -200,6 +200,7 @@ export function DatePickerField({
           onChange={handleDateChange}
           minimumDate={minimumDate}
           maximumDate={maximumDate}
+          is24Hour={true}
         />
       )}
 
@@ -245,6 +246,7 @@ export function DatePickerField({
                     locale="tr_TR"
                     minimumDate={minimumDate}
                     maximumDate={maximumDate}
+                    is24Hour={true}
                   />
                   <DateTimePicker
                     value={tempDate}
@@ -256,6 +258,7 @@ export function DatePickerField({
                       }
                     }}
                     locale="tr_TR"
+                    is24Hour={true}
                   />
                 </>
               ) : (
@@ -271,6 +274,7 @@ export function DatePickerField({
                   locale="tr_TR"
                   minimumDate={minimumDate}
                   maximumDate={maximumDate}
+                  is24Hour={true}
                 />
               )}
             </Pressable>

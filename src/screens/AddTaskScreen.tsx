@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Animated,
+  Easing,
+  LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaWrapper } from '../components/common';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,14 +27,12 @@ import {
   ItemType,
   ITEM_TYPES,
   TASK_CATEGORY,
-  TASK_TYPE,
   TASK_RECURRENCE,
   COUNTDOWN_MODE,
   NOTIFICATION_TYPE,
 } from '../types';
 import type {
   TaskCategory,
-  TaskType as TaskTypeEnum,
   TaskRecurrence,
   CreateTaskInput,
   CountdownMode,
@@ -41,48 +42,14 @@ import type {
   CreateNotificationInput,
   CreateAlarmInput,
 } from '../types';
+import { formatDate, now } from '../utils/date';
+import { taskCategoryOptions, taskRecurrenceOptions, countdownModeOptions, diaryMoodOptions } from '../constants';
 
 interface AddTaskScreenProps {
   onGoBack?: () => void;
 }
 
-// Task category options
-const taskCategoryOptions = [
-  { label: 'Kişisel', value: TASK_CATEGORY.PERSONAL },
-  { label: 'İş', value: TASK_CATEGORY.WORK },
-  { label: 'Sağlık', value: TASK_CATEGORY.HEALTH },
-  { label: 'Eğitim', value: TASK_CATEGORY.STUDY },
-  { label: 'Diğer', value: TASK_CATEGORY.OTHER },
-];
 
-// Task recurrence options
-const taskRecurrenceOptions = [
-  { label: 'Tek Seferlik', value: TASK_RECURRENCE.ONCE },
-  { label: 'Günlük', value: TASK_RECURRENCE.DAILY },
-  { label: 'Haftalık', value: TASK_RECURRENCE.WEEKLY },
-  { label: 'Aylık', value: TASK_RECURRENCE.MONTHLY },
-  { label: 'Yıllık', value: TASK_RECURRENCE.YEARLY },
-];
-
-// Countdown mode options
-const countdownModeOptions = [
-  { label: 'Geri Sayım', value: COUNTDOWN_MODE.COUNTDOWN },
-  { label: 'İleri Sayım', value: COUNTDOWN_MODE.COUNTUP },
-];
-
-// Diary mood options
-const diaryMoodOptions = [
-  { label: 'Çok Mutlu 😄', value: 'very_happy' },
-  { label: 'Mutlu 🙂', value: 'happy' },
-  { label: 'Normal 😐', value: 'neutral' },
-  { label: 'Üzgün 😔', value: 'sad' },
-  { label: 'Çok Üzgün 😢', value: 'very_sad' },
-  { label: 'Sinirli 😠', value: 'angry' },
-  { label: 'Kaygılı 😰', value: 'anxious' },
-  { label: 'Huzurlu 😌', value: 'peaceful' },
-  { label: 'Enerjik ⚡', value: 'energetic' },
-  { label: 'Yorgun 😴', value: 'tired' },
-];
 
 
 export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
@@ -91,7 +58,6 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<TaskCategory>(TASK_CATEGORY.PERSONAL);
-  const [taskType, setTaskType] = useState<TaskTypeEnum>(TASK_TYPE.TODO);
   const [recurrence, setRecurrence] = useState<TaskRecurrence>(
     TASK_RECURRENCE.ONCE
   );
@@ -125,6 +91,38 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
   const [reminderDate, setReminderDate] = useState<Date | null>(new Date());
   const [reminderTime, setReminderTime] = useState<Date | null>(new Date());
 
+  // Animation states
+  const [typeLayouts, setTypeLayouts] = useState<
+    Record<string, { x: number; y: number; width: number; height: number }>
+  >({});
+  const indicatorX = useRef(new Animated.Value(0)).current;
+  const indicatorW = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const layout = typeLayouts[selectedType];
+    if (layout) {
+      Animated.parallel([
+        Animated.timing(indicatorX, {
+          toValue: layout.x,
+          duration: 250,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(indicatorW, {
+          toValue: layout.width,
+          duration: 250,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+      ]).start();
+    }
+  }, [selectedType, typeLayouts]);
+
+  const handleTypeLayout = (id: string) => (event: LayoutChangeEvent) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    setTypeLayouts((prev) => ({ ...prev, [id]: { x, y, width, height } }));
+  };
+
   const handleGoBack = () => {
     if (onGoBack) {
       onGoBack();
@@ -155,10 +153,8 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
       title: title.trim(),
       description: description.trim() || undefined,
       category,
-      type: taskType,
       recurrence,
-      dueDate: noDueDate ? undefined : dueDate, // Bitiş tarihi yok ise undefined
-      completed: false,
+      dueDate: noDueDate || !dueDate ? null : dueDate.toISOString(), // Convert to ISO string
     };
 
     console.log('Saving task:', taskData);
@@ -206,8 +202,8 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
     const countdownData: CreateCountdownInput = {
       userId: 'user-123', // TODO: Get from auth context
       title: countdownTitle.trim(),
-      description: countdownDescription.trim() || '',
-      targetDate,
+      description: countdownDescription.trim() || undefined,
+      targetDate: targetDate!.toISOString(), // Convert to ISO string
       mode: countdownMode,
     };
 
@@ -239,7 +235,7 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
     // TODO: Save diary to database
     const diaryData: CreateDiaryInput = {
       userId: 'user-123', // TODO: Get from auth context
-      date: diaryDate,
+      date: formatDate(diaryDate!), // Convert to YYYY-MM-DD
       title: diaryTitle.trim(),
       content: diaryContent.trim(),
       mood: diaryMood || undefined,
@@ -272,10 +268,11 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
 
     // TODO: Save alarm to database
     const alarmData: CreateAlarmInput = {
-      userId: 1, // TODO: Get from auth context (number)
+      userId: 'user-123', // TODO: Get from auth context (string)
       title: alarmTitle.trim(),
       time: timeString,
-      repeatDays: alarmRepeatDays.trim() || null, // Boş ise tek seferlik
+      repeatDays: alarmRepeatDays.trim() ? alarmRepeatDays.split(',').map(d => parseInt(d.trim())) : null, // Convert to number array
+      isEnabled: true,
       vibrate: alarmVibrate,
     };
 
@@ -325,7 +322,7 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
       const isToday =
         reminderDate.toISOString().split('T')[0] ===
         now.toISOString().split('T')[0];
-      
+
       if (isToday) {
         Alert.alert('Hata', 'Seçilen saat geçmişte. Lütfen gelecekteki bir saat seçiniz.');
       } else {
@@ -370,7 +367,6 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
             onChangeText={setTitle}
             placeholder="Örn. Proje raporunu tamamla"
           />
-          <View style={styles.divider} />
           <TextAreaField
             label="Açıklama"
             value={description}
@@ -452,7 +448,6 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
             onChangeText={setCountdownTitle}
             placeholder="Örn. Yılbaşı geri sayımı"
           />
-          <View style={styles.divider} />
           <TextAreaField
             label="Açıklama"
             value={countdownDescription}
@@ -516,7 +511,6 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
             onChangeText={setDiaryTitle}
             placeholder="Örn. Bugün çok güzel bir gündü"
           />
-          <View style={styles.divider} />
           <TextAreaField
             label="Günlük İçeriği"
             value={diaryContent}
@@ -608,7 +602,6 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
             onChangeText={setReminderTitle}
             placeholder="Örn. Doktor randevusu"
           />
-          <View style={styles.divider} />
           <TextAreaField
             label="Hatırlatıcı Mesajı"
             value={reminderMessage}
@@ -647,6 +640,8 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
   };
 
   const renderTypeSelector = () => {
+    const activeItemColor = ITEM_TYPES.find((t) => t.id === selectedType)?.color;
+
     return (
       <View style={styles.typeSelectorContainer}>
         <ScrollView
@@ -654,15 +649,61 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.typeSelectorContent}
         >
+          {/* Background Layer (Inactive Items) */}
+          {Object.entries(typeLayouts).map(([id, layout]) => (
+            <View
+              key={`bg-${id}`}
+              style={[
+                styles.typeButtonBase,
+                {
+                  position: 'absolute',
+                  left: layout.x,
+                  top: layout.y,
+                  width: layout.width,
+                  height: layout.height,
+                  backgroundColor: theme.colors.surface.main,
+                },
+              ]}
+            />
+          ))}
+
+          {/* Active Indicator Layer */}
+          {typeLayouts[selectedType] && (
+            <Animated.View
+              style={[
+                styles.typeButtonBase,
+                {
+                  position: 'absolute',
+                  left: 0,
+                  top: typeLayouts[selectedType].y,
+                  width: indicatorW,
+                  height: typeLayouts[selectedType].height,
+                  transform: [{ translateX: indicatorX }],
+                  backgroundColor: theme.colors.surface.secondary,
+                  borderColor: activeItemColor,
+                  borderWidth: 2,
+                  zIndex: 1,
+                },
+              ]}
+            />
+          )}
+
+          {/* Foreground Layer (Content) */}
           {ITEM_TYPES.map((type) => (
             <TouchableOpacity
               key={type.id}
               style={[
                 styles.typeButton,
-                selectedType === type.id && styles.typeButtonActive,
-                { borderColor: type.color },
+                {
+                  backgroundColor: typeLayouts[type.id]
+                    ? 'transparent'
+                    : theme.colors.surface.main,
+                  borderWidth: 0, // Border handled by indicator
+                  zIndex: 2,
+                },
               ]}
               onPress={() => setSelectedType(type.id)}
+              onLayout={handleTypeLayout(type.id)}
               activeOpacity={0.7}
             >
               <View
@@ -708,7 +749,7 @@ export function AddTaskScreen({ onGoBack }: AddTaskScreenProps) {
             {
               paddingBottom:
                 Math.max(insets.bottom, verticalScale(8)) +
-                verticalScale(70) + // BottomNavbar approximate height
+                verticalScale(16) + // BottomNavbar approximate height
                 verticalScale(8), // Small margin
             },
           ]}
@@ -740,7 +781,7 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(8),
   },
   typeSelectorContainer: {
-    marginBottom: verticalScale(20),
+    marginBottom: verticalScale(16),
   },
   typeSelectorContent: {
     paddingHorizontal: scale(4),
@@ -755,6 +796,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: theme.colors.surface.main,
     minWidth: moderateScale(100),
+  },
+  typeButtonBase: {
+    borderRadius: moderateScale(12),
+    // Base styles for background and indicator
   },
   typeButtonActive: {
     backgroundColor: theme.colors.surface.secondary,
@@ -779,7 +824,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bold,
   },
   formContainer: {
-    marginTop: verticalScale(8),
   },
   card: {
     backgroundColor: theme.colors.surface.main,
@@ -796,9 +840,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   divider: {
-    height: 1,
-    backgroundColor: theme.colors.border.light,
-    marginVertical: verticalScale(16),
+    marginVertical: verticalScale(0),
   },
   placeholderContainer: {
     justifyContent: 'center',

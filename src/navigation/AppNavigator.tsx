@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { scale } from 'react-native-size-matters';
@@ -9,6 +9,7 @@ import {
   CalendarScreen,
   AddTaskScreen,
 } from '../screens';
+import EditItemScreen from '../screens/EditItemScreen';
 import {
   BottomNavbar,
   TabType,
@@ -19,10 +20,24 @@ import { theme } from '../theme';
 
 type ScreenType = TabType | 'addTask';
 
+// Edit Context
+interface EditContextType {
+  editingItem: any | null;
+  setEditingItem: (item: any | null) => void;
+}
+
+const EditContext = createContext<EditContextType>({
+  editingItem: null,
+  setEditingItem: () => { },
+});
+
+export const useEditContext = () => useContext(EditContext);
+
 export function AppNavigator() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('home');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const mainContentTranslateX = useRef(new Animated.Value(0)).current;
 
   const handleTabPress = (tab: TabType) => {
@@ -114,7 +129,7 @@ export function AppNavigator() {
             <CalendarScreen />
           </>
         );
-        default:
+      default:
         return (
           <>
             <TopNavbar
@@ -126,30 +141,49 @@ export function AppNavigator() {
     }
   };
 
+  // EditItemScreen açıksa, sadece onu göster (navbar/sidebar yok)
+  if (editingItem) {
+    return (
+      <SafeAreaProvider>
+        <EditItemScreen
+          itemType={editingItem.type}
+          itemData={editingItem}
+          onGoBack={() => setEditingItem(null)}
+          onSave={(updatedData) => {
+            console.log('Item updated:', updatedData);
+            setEditingItem(null);
+          }}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
-      <View style={styles.container}>
-        <Animated.View
-          style={[
-            styles.mainContent,
-            {
-              transform: [{ translateX: mainContentTranslateX }],
-            },
-          ]}
-        >
-          {renderScreen()}
-          <BottomNavbar
-            activeTab={activeTab}
-            onTabPress={handleTabPress}
-            onAddPress={handleAddPress}
-            isAddButtonActive={currentScreen === 'addTask'}
+      <EditContext.Provider value={{ editingItem, setEditingItem }}>
+        <View style={styles.container}>
+          <Animated.View
+            style={[
+              styles.mainContent,
+              {
+                transform: [{ translateX: mainContentTranslateX }],
+              },
+            ]}
+          >
+            {renderScreen()}
+            <BottomNavbar
+              activeTab={activeTab}
+              onTabPress={handleTabPress}
+              onAddPress={handleAddPress}
+              isAddButtonActive={currentScreen === 'addTask'}
+            />
+          </Animated.View>
+          <LeftSidebar
+            visible={isSidebarVisible}
+            onClose={handleSidebarClose}
           />
-        </Animated.View>
-        <LeftSidebar
-          visible={isSidebarVisible}
-          onClose={handleSidebarClose}
-        />
-      </View>
+        </View>
+      </EditContext.Provider>
     </SafeAreaProvider>
   );
 }

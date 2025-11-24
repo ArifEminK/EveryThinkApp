@@ -3,61 +3,43 @@
  * TypeScript types for tasks and to-do items
  */
 
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+
 export type TaskCategory = 'personal' | 'work' | 'health' | 'study' | 'other';
-export type TaskType = 'todo' | 'task';
 export type TaskRecurrence = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-export interface Task {
-  id: string; // uuid
-  userId: string; // uuid - Foreign Key to users
-  title: string;
-  description: string;
-  category: TaskCategory;
-  type: TaskType;
-  recurrence: TaskRecurrence;
-  dueDate: Date | null;
-  completed: boolean;
-  createdAt: Date;
+export interface RecurrenceOptions {
+  weeklyDays?: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  monthlyDay?: number;   // 1-31
 }
 
-export interface CreateTaskInput {
+export interface Task {
+  id: string;
   userId: string;
   title: string;
   description?: string;
-  category?: TaskCategory;
-  type?: TaskType;
-  recurrence?: TaskRecurrence;
-  dueDate?: Date | null;
-  completed?: boolean;
+  category: TaskCategory;
+  recurrence: TaskRecurrence;
+  recurrenceOptions?: RecurrenceOptions;
+  dueDate?: string | null;   // ISO string
+  createdAt: string;         // ISO string
 }
 
-export interface UpdateTaskInput {
-  title?: string;
-  description?: string;
-  category?: TaskCategory;
-  type?: TaskType;
-  recurrence?: TaskRecurrence;
-  dueDate?: Date | null;
-  completed?: boolean;
-}
+// Create/Update input types
+export type CreateTaskInput = Omit<Task, 'id' | 'createdAt'>;
+export type UpdateTaskInput = Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>;
 
-// Task with user relation (optional)
-export interface TaskWithUser extends Task {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
+// Task with completion status (computed from logs)
+export interface TaskWithStatus extends Task {
+  completedToday: boolean;
 }
 
 // Task filter options
 export interface TaskFilterOptions {
   category?: TaskCategory;
-  type?: TaskType;
-  completed?: boolean;
   dueDate?: {
-    from?: Date;
-    to?: Date;
+    from?: string;
+    to?: string;
   };
   search?: string;
 }
@@ -71,3 +53,23 @@ export interface TaskSortOptions {
   sortOrder: TaskSortOrder;
 }
 
+// Firestore Converter
+export const TaskConverter = {
+  toFirestore(task: Task): FirebaseFirestoreTypes.DocumentData {
+    return task;
+  },
+  fromFirestore(snapshot: FirebaseFirestoreTypes.QueryDocumentSnapshot): Task {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      userId: data.userId,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      recurrence: data.recurrence,
+      recurrenceOptions: data.recurrenceOptions,
+      dueDate: data.dueDate,
+      createdAt: data.createdAt,
+    };
+  },
+};

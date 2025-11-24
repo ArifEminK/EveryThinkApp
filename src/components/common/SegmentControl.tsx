@@ -14,14 +14,14 @@ import { ITEM_TYPES } from '../../types/item';
 
 export type SegmentType = 'all' | 'task' | 'diary' | 'countdown' | 'alarm';
 
-interface SegmentControlProps {
-  segments: { label: string; value: SegmentType }[];
-  selectedSegment: SegmentType;
-  onSegmentChange: (segment: SegmentType) => void;
+interface SegmentControlProps<T extends string = SegmentType> {
+  segments: { label: string; value: T }[];
+  selectedSegment: T;
+  onSegmentChange: (segment: T) => void;
 }
 
 // Segment renkleri - ITEM_TYPES'dan alınır
-const getSegmentColor = (segmentValue: SegmentType): string => {
+const getSegmentColor = (segmentValue: string): string => {
   if (segmentValue === 'all') {
     return theme.colors.text.primary; // Tümü için varsayılan renk
   }
@@ -37,9 +37,9 @@ const hexToRgba = (hex: string, opacity: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
-type SegmentLayoutMap = Partial<
+type SegmentLayoutMap<T extends string> = Partial<
   Record<
-    SegmentType,
+    T,
     {
       x: number;
       width: number;
@@ -51,12 +51,12 @@ type SegmentLayoutMap = Partial<
  * SegmentControl - Horizontal segment control for filtering items
  * Displays segments with active/inactive states
  */
-export function SegmentControl({
+export function SegmentControl<T extends string = SegmentType>({
   segments,
   selectedSegment,
   onSegmentChange,
-}: SegmentControlProps) {
-  const [segmentLayouts, setSegmentLayouts] = useState<SegmentLayoutMap>({});
+}: SegmentControlProps<T>) {
+  const [segmentLayouts, setSegmentLayouts] = useState<SegmentLayoutMap<T>>({});
   const indicatorTranslate = useRef(new Animated.Value(0)).current;
   const indicatorWidth = useRef(new Animated.Value(0)).current;
 
@@ -89,14 +89,14 @@ export function SegmentControl({
   }, [selectedSegment, segmentLayouts, indicatorTranslate, indicatorWidth]);
 
   const handleSegmentLayout =
-    (segmentValue: SegmentType) =>
-    (event: LayoutChangeEvent): void => {
-      const { x, width } = event.nativeEvent.layout;
-      setSegmentLayouts((prev) => ({
-        ...prev,
-        [segmentValue]: { x, width },
-      }));
-    };
+    (segmentValue: T) =>
+      (event: LayoutChangeEvent): void => {
+        const { x, width } = event.nativeEvent.layout;
+        setSegmentLayouts((prev) => ({
+          ...prev,
+          [segmentValue]: { x, width },
+        }));
+      };
 
   return (
     <View style={styles.container}>
@@ -215,4 +215,3 @@ const styles = StyleSheet.create({
 });
 
 export default SegmentControl;
-

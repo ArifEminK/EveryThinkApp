@@ -3,39 +3,39 @@
  * TypeScript types for countdown/count-up events
  */
 
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+
 export type CountdownMode = 'countup' | 'countdown';
 
 export interface Countdown {
-  id: string; // uuid
-  userId: string; // uuid - Foreign Key to users
-  title: string;
-  description: string;
-  targetDate: Date; // countdown mode: bitiş tarihi, countup mode: başlangıç tarihi
-  mode: CountdownMode;
-  createdAt: Date;
+    id: string;            // uuid
+    userId: string;        // uuid - Foreign Key to users
+    title: string;
+    description?: string;
+    targetDate: string;    // ISO string - countdown mode: bitiş tarihi, countup mode: başlangıç tarihi
+    mode: CountdownMode;
+    createdAt: string;     // ISO string
 }
 
-export interface CreateCountdownInput {
-  userId: string;
-  title: string;
-  description: string;
-  targetDate: Date; // countdown mode: bitiş tarihi, countup mode: başlangıç tarihi
-  mode: CountdownMode;
-}
+// Create/Update input types
+export type CreateCountdownInput = Omit<Countdown, 'id' | 'createdAt'>;
+export type UpdateCountdownInput = Partial<Omit<Countdown, 'id' | 'userId' | 'createdAt'>>;
 
-export interface UpdateCountdownInput {
-  title?: string;
-  description?: string;
-  targetDate?: Date;
-  mode?: CountdownMode;
-}
-
-// Countdown with user relation (optional)
-export interface CountdownWithUser extends Countdown {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
+// Firestore Converter
+export const CountdownConverter = {
+    toFirestore(countdown: Countdown): FirebaseFirestoreTypes.DocumentData {
+        return countdown;
+    },
+    fromFirestore(snapshot: FirebaseFirestoreTypes.QueryDocumentSnapshot): Countdown {
+        const data = snapshot.data();
+        return {
+            id: snapshot.id,
+            userId: data.userId,
+            title: data.title,
+            description: data.description,
+            targetDate: data.targetDate,
+            mode: data.mode,
+            createdAt: data.createdAt,
+        };
+    },
+};
